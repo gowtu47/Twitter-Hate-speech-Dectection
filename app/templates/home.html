@@ -1,0 +1,95 @@
+{% load static %}
+{% get_static_prefix as d %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>home page</title>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <script src=
+    "https://code.jquery.com/jquery-3.5.1.min.js">
+</script>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+  </head>
+  <style>
+  @import url('https://fonts.googleapis.com/css2?family=Russo+One&display=swap');
+
+    body{
+        background-image: url(https://images.pexels.com/photos/5935794/pexels-photo-5935794.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1);
+        background-size: cover;
+        background-attachment: fixed;
+    }
+    h1{
+        text-align: center;
+        text-transform: uppercase;
+        font-size: 60px;
+        font-family: 'Russo One', sans-serif;
+        padding-top: 70px;
+        color: white;
+        text-shadow: 2px 2px 4px black;
+    }
+    label{
+        color: white;
+        text-shadow: 2px 2px 4px black;
+        font-size: 20px;
+    }
+
+  </style>
+  <body>
+     
+      <div class="container">
+        <h1>Speech detection</h1>
+
+        <!-- {% if answer %}
+    {{answer }}
+{% endif %} -->
+
+        <br><br>
+        <form action="" method="post">
+          {% csrf_token %}
+            <div class="form-group">
+                <label for="">Enter Your Text</label>
+                <textarea name="t" id="t" cols="30" rows="5" class="form-control" placeholder="enter your text"></textarea>
+            </div>
+            <button type="button" class="btn btn-success col-3"  onclick="togglePopup()" data-toggle="modal" data-target="#myModal">Detect</button>
+        </form>
+    
+      </div>
+      <div class="modal fade" id="myModal">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+      
+            <!-- Modal Header -->
+            <div class="modal-header">
+              <h4 class="modal-title">Speech Detection</h4>
+              <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+      
+            <!-- Modal body -->
+            <div class="modal-body">
+                  <h2 class="text-danger">
+                    {% if answer %}
+                    {{answer }}
+                    {% endif %} 
+                  </h2>
+            </div>
+      
+            <!-- Modal footer -->
+            <div class="modal-footer">
+              <button type="button" class="btn btn-success" data-dismiss="modal">Close</button>
+            </div>
+      
+          </div>
+        </div>
+      </div>
+      
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+  </body>
+</html>
