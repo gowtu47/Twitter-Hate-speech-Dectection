@@ -1,0 +1,86 @@
+from qz.people import QzPerson
+from qz.people.internal.generated_shortcuts import (
+    email2Band,
+    email2CostCenterCode,
+    email2DirectReports,
+    email2FloorNumber,
+    email2Lob,
+    email2ManagerChain,
+    email2MailCode,
+    email2Address,
+    login2Division,
+    login2SubDivision,
+    FailureBehavior
+)
+import logging
+
+# Setup
+logging.basicConfig(level=logging.INFO)
+
+nbk_login_ids = [
+    "zukwka0z",
+    "nbkcrso",
+    "abc12345",
+    "xyz67890",
+    "testnbk1",
+    "userone1",
+    "usertwo2",
+    "nbkid03x",
+    "nbktest4",
+    "finalnbk5"
+]
+
+# Headers
+headers = [
+    "NBKID", "LastName", "FirstName", "Email", "CostCenter",
+    "HierarchyCode", "Division", "Sub-Division", "ManagerChain", "Division/1Down"
+]
+
+# Print header row
+print("\t".join(headers))
+
+# Process and print each row
+for login_id in nbk_login_ids:
+    try:
+        person = QzPerson.fromLoginId(login_id)
+        if not person:
+            logging.warning(f"No person found for: {login_id}")
+            continue
+
+        email = person.EmailAddress() if person.EmailAddress else None
+
+        # Shortcuts with safe lookup
+        band = email2Band(email, failureBehavior=FailureBehavior.none) if email else None
+        cost_center = email2CostCenterCode(email, failureBehavior=FailureBehavior.none) if email else None
+        floor = email2FloorNumber(email, failureBehavior=FailureBehavior.none) if email else None
+        lob = email2Lob(email, failureBehavior=FailureBehavior.none) if email else None
+        mail_code = email2MailCode(email, failureBehavior=FailureBehavior.none) if email else None
+        address = email2Address(email, failureBehavior=FailureBehavior.none) if email else None
+        hierarchy_code = person.HierarchyCode() if hasattr(person, "HierarchyCode") else None
+        division = login2Division(login_id, failureBehavior=FailureBehavior.none)
+        sub_division = login2SubDivision(login_id, failureBehavior=FailureBehavior.none)
+
+        # Manager chain as names
+        manager_chain_raw = email2ManagerChain(email, failureBehavior=FailureBehavior.none) if email else []
+        manager_chain = " -> ".join(
+            [f"{mgr.LoginId()} [{mgr.FullName()}]" if mgr.FullName() else mgr.LoginId() for mgr in manager_chain_raw if mgr]
+        )
+
+        # Build and print row
+        row = [
+            login_id or "",
+            person.LastName() if person.LastName else "",
+            person.FirstName() if person.FirstName else "",
+            email or "",
+            cost_center or "",
+            hierarchy_code or "",
+            division or "",
+            sub_division or "",
+            manager_chain or "",
+            f"{division}/1Down" if division else ""
+        ]
+
+        print("\t".join(row))
+
+    except Exception as e:
+        logging.error(f"Failed to process {login_id}: {e}")
