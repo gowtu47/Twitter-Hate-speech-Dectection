@@ -17,84 +17,73 @@ import logging
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 
-# List of NBK login IDs
 nbk_login_ids = [
-    "zukwka0z", "nbkcrso", "abc12345", "xyz67890",
-    "testnbk1", "userone1", "usertwo2", "nbkid03x", "nbktest4", "finalnbk5"
+    "zukwka0z",
+    "nbkcrso",
+    "abc12345",
+    "xyz67890",
+    "testnbk1",
+    "userone1",
+    "usertwo2",
+    "nbkid03x",
+    "nbktest4",
+    "finalnbk5"
 ]
 
-# Final results list
-all_people = []
-
-# Headers for final output
+# Updated headers to include Address and Floor
 headers = [
-    "Login ID", "Full Name", "Username", "Email", "Band", "LOB", "MailCode", "Floor", "Address",
-    "Cost Center", "Direct Report Count", "Manager Chain", "Employment Status", "Display Name",
-    "Hire Date", "Person Number"
+    "NBKID", "LastName", "FirstName", "Email", "CostCenter",
+    "HierarchyCode", "Division", "Sub-Division", "Floor", "Address",
+    "ManagerChain", "Division/1Down"
 ]
-print("\n" + "\t".join(headers))
 
-# Process each user
+# Print header row
+print("\t".join(headers))
+
+# Process and print each row
 for login_id in nbk_login_ids:
     try:
         person = QzPerson.fromLoginId(login_id)
         if not person:
-            logging.warning(f"No user found for login ID: {login_id}")
+            logging.warning(f"No person found for: {login_id}")
             continue
 
         email = person.EmailAddress() if person.EmailAddress else None
 
-        # Initialize fields
-        band = cost_center = floor = lob = mail_code = address = None
-        direct_reports = []
-        manager_chain = []
+        # Shortcuts with safe lookup
+        band = email2Band(email, failureBehavior=FailureBehavior.none) if email else None
+        cost_center = email2CostCenterCode(email, failureBehavior=FailureBehavior.none) if email else None
+        floor = email2FloorNumber(email, failureBehavior=FailureBehavior.none) if email else None
+        lob = email2Lob(email, failureBehavior=FailureBehavior.none) if email else None
+        mail_code = email2MailCode(email, failureBehavior=FailureBehavior.none) if email else None
+        address_list = email2Address(email, failureBehavior=FailureBehavior.none) if email else None
+        address = address_list[0] if address_list else ""
+        hierarchy_code = person.HierarchyCode() if hasattr(person, "HierarchyCode") else None
+        division = login2Division(login_id, failureBehavior=FailureBehavior.none)
+        sub_division = login2SubDivision(login_id, failureBehavior=FailureBehavior.none)
 
-        # Lookup fields safely
-        if email:
-            try:
-                band = email2Band(email, failureBehavior=FailureBehavior.none)
-                cost_center = email2CostCenterCode(email, failureBehavior=FailureBehavior.none)
-                floor = email2FloorNumber(email, failureBehavior=FailureBehavior.none)
-                lob = email2Lob(email, failureBehavior=FailureBehavior.none)
-                mail_code = email2MailCode(email, failureBehavior=FailureBehavior.none)
-                address_list = email2Address(email, failureBehavior=FailureBehavior.none)
-                address = address_list[0] if address_list else None
-                direct_reports = email2DirectReports(email, failureBehavior=FailureBehavior.none)
+        # Manager chain as names
+        manager_chain_raw = email2ManagerChain(email, failureBehavior=FailureBehavior.none) if email else []
+        manager_chain = " -> ".join(
+            [f"{mgr.LoginId()} [{mgr.FullName()}]" if mgr.FullName() else mgr.LoginId() for mgr in manager_chain_raw if mgr]
+        )
 
-                managers = email2ManagerChain(email, failureBehavior=FailureBehavior.none)
-                for mgr in managers:
-                    if mgr:
-                        mgr_id = mgr.LoginId()
-                        mgr_name = mgr.FullName() if mgr.FullName else f"{mgr.FirstName()} {mgr.LastName()}"
-                        manager_chain.append(f"{mgr_id} [{mgr_name}]")
+        # Final row with address and floor added
+        row = [
+            login_id or "",
+            person.LastName() if person.LastName else "",
+            person.FirstName() if person.FirstName else "",
+            email or "",
+            cost_center or "",
+            hierarchy_code or "",
+            division or "",
+            sub_division or "",
+            floor or "",
+            address or "",
+            manager_chain or "",
+            f"{division}/1Down" if division else ""
+        ]
 
-            except Exception as e:
-                logging.warning(f"Failed shortcut lookup for {email}: {e}")
-
-        # Store details
-        person_data = {
-            "Login ID": login_id,
-            "Full Name": person.FullName() if person.FullName else f"{person.FirstName()} {person.LastName()}",
-            "Username": person.UserName() if person.UserName else None,
-            "Email": email,
-            "Band": band,
-            "LOB": lob,
-            "MailCode": mail_code,
-            "Floor": floor,
-            "Address": address,
-            "Cost Center": cost_center,
-            "Direct Report Count": len(direct_reports) if direct_reports else 0,
-            "Manager Chain": " -> ".join(manager_chain),
-            "Employment Status": person.EmploymentStatusCode(),
-            "Display Name": person.DisplayName(),
-            "Hire Date": person.HireDate().strftime("%Y-%m-%d") if person.HireDate() else None,
-            "Person Number": person.PersonNumber()
-        }
-
-        all_people.append(person_data)
-
-        # Print row to console
-        row = [str(person_data.get(col, "")) for col in headers]
         print("\t".join(row))
 
     except Exception as e:
