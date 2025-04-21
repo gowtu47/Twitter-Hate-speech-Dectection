@@ -1,0 +1,101 @@
+from qz.people import QzPerson
+from qz.people.internal.generated_shortcuts import (
+    email2Band,
+    email2CostCenterCode,
+    email2DirectReports,
+    email2FloorNumber,
+    email2Lob,
+    email2ManagerChain,
+    email2MailCode,
+    email2Address,
+    login2Division,
+    login2SubDivision,
+    FailureBehavior
+)
+import logging
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+
+# List of NBK login IDs
+nbk_login_ids = [
+    "zukwka0z", "nbkcrso", "abc12345", "xyz67890",
+    "testnbk1", "userone1", "usertwo2", "nbkid03x", "nbktest4", "finalnbk5"
+]
+
+# Final results list
+all_people = []
+
+# Headers for final output
+headers = [
+    "Login ID", "Full Name", "Username", "Email", "Band", "LOB", "MailCode", "Floor", "Address",
+    "Cost Center", "Direct Report Count", "Manager Chain", "Employment Status", "Display Name",
+    "Hire Date", "Person Number"
+]
+print("\n" + "\t".join(headers))
+
+# Process each user
+for login_id in nbk_login_ids:
+    try:
+        person = QzPerson.fromLoginId(login_id)
+        if not person:
+            logging.warning(f"No user found for login ID: {login_id}")
+            continue
+
+        email = person.EmailAddress() if person.EmailAddress else None
+
+        # Initialize fields
+        band = cost_center = floor = lob = mail_code = address = None
+        direct_reports = []
+        manager_chain = []
+
+        # Lookup fields safely
+        if email:
+            try:
+                band = email2Band(email, failureBehavior=FailureBehavior.none)
+                cost_center = email2CostCenterCode(email, failureBehavior=FailureBehavior.none)
+                floor = email2FloorNumber(email, failureBehavior=FailureBehavior.none)
+                lob = email2Lob(email, failureBehavior=FailureBehavior.none)
+                mail_code = email2MailCode(email, failureBehavior=FailureBehavior.none)
+                address_list = email2Address(email, failureBehavior=FailureBehavior.none)
+                address = address_list[0] if address_list else None
+                direct_reports = email2DirectReports(email, failureBehavior=FailureBehavior.none)
+
+                managers = email2ManagerChain(email, failureBehavior=FailureBehavior.none)
+                for mgr in managers:
+                    if mgr:
+                        mgr_id = mgr.LoginId()
+                        mgr_name = mgr.FullName() if mgr.FullName else f"{mgr.FirstName()} {mgr.LastName()}"
+                        manager_chain.append(f"{mgr_id} [{mgr_name}]")
+
+            except Exception as e:
+                logging.warning(f"Failed shortcut lookup for {email}: {e}")
+
+        # Store details
+        person_data = {
+            "Login ID": login_id,
+            "Full Name": person.FullName() if person.FullName else f"{person.FirstName()} {person.LastName()}",
+            "Username": person.UserName() if person.UserName else None,
+            "Email": email,
+            "Band": band,
+            "LOB": lob,
+            "MailCode": mail_code,
+            "Floor": floor,
+            "Address": address,
+            "Cost Center": cost_center,
+            "Direct Report Count": len(direct_reports) if direct_reports else 0,
+            "Manager Chain": " -> ".join(manager_chain),
+            "Employment Status": person.EmploymentStatusCode(),
+            "Display Name": person.DisplayName(),
+            "Hire Date": person.HireDate().strftime("%Y-%m-%d") if person.HireDate() else None,
+            "Person Number": person.PersonNumber()
+        }
+
+        all_people.append(person_data)
+
+        # Print row to console
+        row = [str(person_data.get(col, "")) for col in headers]
+        print("\t".join(row))
+
+    except Exception as e:
+        logging.error(f"Failed to process {login_id}: {e}")
